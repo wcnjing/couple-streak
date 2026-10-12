@@ -8,8 +8,8 @@ service cloud.firestore {
     function me() {
       return request.auth != null && request.auth.token.email_verified == true
         ? {
-            "WENJING_EMAIL@example.com": "wenjing",
-            "JAVEN_EMAIL@example.com": "javen"
+            "wenjinx2005@gmail.com": "wenjing",
+            "javen.heng1@gmail.com": "javen"
           }.get(request.auth.token.email.lower(), null)
         : null;
     }

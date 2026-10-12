@@ -8,6 +8,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Streak">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <title>Wen Jing &amp; Javen's Streak</title>
 <style>
 html { padding-top: env(safe-area-inset-top, 0px); }
@@ -188,7 +192,7 @@ button:focus-visible { outline: 3px solid var(--c, var(--fg)); outline-offset: 3
 <script src="streak.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, PEOPLE_EMAILS } from "./firebase-config.js";
 
@@ -344,9 +348,15 @@ function errorText(e) {
   return "Something went wrong. Try again.";
 }
 
+// Opened from the home screen: pop-ups are unreliable there, so sign in with a full-page redirect.
+const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
 $("signin-btn").addEventListener("click", async () => {
   hideMsg();
-  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  try {
+    if (standalone) await signInWithRedirect(auth, new GoogleAuthProvider());
+    else await signInWithPopup(auth, new GoogleAuthProvider());
+  }
   catch (e) { if (e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") showMsg(errorText(e)); }
 });
 $("signout").addEventListener("click", () => { hideMsg(); signOut(auth); });
@@ -373,8 +383,12 @@ if (!configured) {
   render();
   showMsg("Add your Firebase settings to firebase-config.js to start.");
 } else {
-  const app = initializeApp(firebaseConfig);
+  // On the deployed site, sign-in runs through our own domain (vercel.json proxies /__/auth to Firebase)
+  // so Safari's tracking protection doesn't break the redirect flow.
+  const local = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  const app = initializeApp(local ? firebaseConfig : { ...firebaseConfig, authDomain: location.host });
   auth = getAuth(app);
+  getRedirectResult(auth).catch((e) => showMsg(errorText(e)));
   db = getFirestore(app);
   onAuthStateChanged(auth, (u) => {
     if (unsubscribe) { unsubscribe(); unsubscribe = null; }

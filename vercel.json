@@ -1,5 +1,9 @@
 {
   "buildCommand": "",
   "outputDirectory": "public",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/__/auth/:path*", "destination": "https://streak-5241d.firebaseapp.com/__/auth/:path*" },
+    { "source": "/__/firebase/:path*", "destination": "https://streak-5241d.firebaseapp.com/__/firebase/:path*" }
+  ]
 }

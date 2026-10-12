@@ -3,6 +3,7 @@
   const PEOPLE = ["wenjing", "javen"];
   const DAY_MS = 86400000;
   const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const EARLIEST = "2026-01-01"; // nothing real predates the app; keeps a junk row from looping years
 
   function toNum(date) {
     const [y, m, d] = date.split("-").map(Number);
@@ -26,7 +27,8 @@
 
   function isValid(c, today) {
     return !!c && PEOPLE.includes(c.person) && typeof c.date === "string" &&
-      DATE_RE.test(c.date) && c.date <= today;
+      DATE_RE.test(c.date) && c.date >= EARLIEST && c.date <= today &&
+      toDate(toNum(c.date)) === c.date;
   }
 
   // Status of every day from start to today for one person.

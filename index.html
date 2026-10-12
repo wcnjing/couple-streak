@@ -240,7 +240,7 @@ render();
     render();
     return;
   }
-  db.collection("checkins").limit(1000).onSnapshot(
+  db.collection("checkins").orderBy("date", "desc").limit(1000).onSnapshot(
     (snap) => { checkins = snap.docs.map((d) => d.data()); loaded = true; hideMsgIfLoadError(); render(); },
     () => { showMsg("Lost the connection to your check-ins. Reload the page to reconnect."); },
   );

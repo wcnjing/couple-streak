@@ -147,3 +147,15 @@ test("gridDates covers whole weeks ending on today's Sunday", () => {
   assert.equal(g[34], "2026-10-18");
   assert.ok(g.includes("2026-10-13"));
 });
+
+test("impossible or ancient dates are ignored", () => {
+  const rows = [
+    ...ci("javen", "2026-10-08", "2026-10-09"),
+    { person: "javen", date: "2026-02-30" },
+    { person: "wenjing", date: "0000-00-00" },
+    { person: "wenjing", date: "2026-13-01" },
+  ];
+  const r = S.computeAll(rows, "2026-10-10");
+  assert.equal(r.start, "2026-10-08");
+  assert.equal(r.people.javen.streak, 2);
+});

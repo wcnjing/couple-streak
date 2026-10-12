@@ -1,0 +1,253 @@
+<title>Wen Jing &amp; Javen's Streak</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: scoreboard number on top, the check-in button, then two running lanes (one per person), each with its own 5-week log */
+:root {
+  --bg: #F2F4F7; --surface: #FFFFFF; --fg: #151821; --muted: #5D6575; --line: #DDE1E8;
+  --accent: #2A4BF2; --on-accent: #FFFFFF;
+  --done: #1E9E5A; --frozen: #4FB3E6; --missed: #E5484D; --empty: #E6E9EF; --on-ice: #0B1A24;
+  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1218; --surface: #181C25; --fg: #EEF1F6; --muted: #9AA3B5; --line: #2A303C;
+    --accent: #7088FF; --on-accent: #0B0E14;
+    --done: #3CCB7F; --frozen: #6CC8F2; --missed: #FF6B6F; --empty: #252B36;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1218; --surface: #181C25; --fg: #EEF1F6; --muted: #9AA3B5; --line: #2A303C;
+  --accent: #7088FF; --on-accent: #0B0E14;
+  --done: #3CCB7F; --frozen: #6CC8F2; --missed: #FF6B6F; --empty: #252B36;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 48px; display: grid; gap: 20px; }
+.board { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px 24px; flex-wrap: wrap; }
+.eyebrow { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0; }
+.big { font-family: var(--display); font-weight: 900; font-size: clamp(80px, 22vw, 136px); line-height: .82; font-variant-numeric: tabular-nums; margin: 6px 0 4px; }
+.big small { font-size: .26em; font-weight: 700; margin-left: .25em; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.sub { margin: 0; color: var(--muted); }
+.who-line { color: var(--muted); font-size: 14px; }
+.who-line strong { color: var(--fg); }
+.link { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }
+.picker { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px 16px; display: grid; gap: 12px; }
+.pick-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pick, .go { font-family: var(--display); font-weight: 900; text-transform: uppercase; letter-spacing: .04em; border: 0; border-radius: 14px; cursor: pointer; }
+.pick { font-size: 26px; padding: 16px 8px; background: var(--accent); color: var(--on-accent); }
+.go { font-size: 30px; padding: 18px; width: 100%; background: var(--accent); color: var(--on-accent); }
+.go.is-done { background: var(--surface); color: var(--done); box-shadow: inset 0 0 0 2px var(--done); }
+.go:disabled { opacity: .6; cursor: progress; }
+button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.msg { margin: 0; color: var(--missed); font-weight: 500; }
+.lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.lane { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.lane.is-me { border-color: var(--accent); }
+.lane-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
+.name { font-family: var(--display); font-weight: 700; font-size: 28px; text-transform: uppercase; letter-spacing: .03em; line-height: 1; }
+.count { text-align: right; }
+.num { font-family: var(--display); font-weight: 900; font-size: 52px; line-height: .9; font-variant-numeric: tabular-nums; }
+.unit { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--empty); color: var(--fg); }
+.chip.good { background: var(--done); color: var(--on-accent); }
+.chip.ice { background: var(--frozen); color: var(--on-ice); }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.dow { font-size: 10px; color: var(--muted); text-align: center; font-weight: 600; }
+.cell { aspect-ratio: 1; max-width: 100%; border-radius: 5px; background: var(--empty); }
+.cell.done { background: var(--done); }
+.cell.frozen { background: var(--frozen); }
+.cell.missed { background: var(--missed); }
+.cell.pending { background: transparent; box-shadow: inset 0 0 0 2px var(--accent); }
+.cell.future { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); margin: 0; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.rules { margin: 0; font-size: 13px; color: var(--muted); max-width: 65ch; }
+@media (prefers-reduced-motion: no-preference) {
+  .go, .pick { transition: transform .12s ease; }
+  .go:active, .pick:active { transform: scale(.98); }
+}
+</style>
+
+<main class="wrap">
+  <header class="board">
+    <div>
+      <p class="eyebrow">Together streak</p>
+      <div class="big" id="couple-num">0<small>days</small></div>
+      <p class="sub" id="couple-sub">Loading check-ins…</p>
+    </div>
+    <div class="who-line" id="who-line" hidden>Checking in as <strong id="who-name"></strong> · <button class="link" id="switch" type="button">Switch</button></div>
+  </header>
+
+  <section class="picker" id="picker" hidden>
+    <p class="eyebrow">Who's checking in on this phone?</p>
+    <div class="pick-row">
+      <button class="pick" id="pick-wenjing" type="button" data-person="wenjing">Wen Jing</button>
+      <button class="pick" id="pick-javen" type="button" data-person="javen">Javen</button>
+    </div>
+  </section>
+
+  <button class="go" id="go" type="button" hidden>Done today ✓</button>
+  <p class="msg" id="msg" hidden></p>
+
+  <section class="lanes" id="lanes"></section>
+
+  <p class="legend">
+    <span><i style="background:var(--done)"></i>Trained</span>
+    <span><i style="background:var(--frozen)"></i>Freeze used</span>
+    <span><i style="background:var(--missed)"></i>Missed</span>
+    <span><i style="box-shadow:inset 0 0 0 2px var(--accent)"></i>Today</span>
+  </p>
+  <p class="rules">Each of you gets one freeze a week (Monday to Sunday). It covers your first missed day automatically. Freezes keep a streak alive but don't add to it. The together streak only grows on days you both train.</p>
+</main>
+
+<script src="streak.js"></script>
+<script>
+const NAMES = { wenjing: "Wen Jing", javen: "Javen" };
+const DOW = ["M", "T", "W", "T", "F", "S", "S"];
+const STATUS_LABEL = { done: "trained", frozen: "freeze used", missed: "missed", pending: "not yet", future: "", empty: "" };
+const $ = (id) => document.getElementById(id);
+
+let me = null;
+try { const saved = localStorage.getItem("streak-me"); if (NAMES[saved]) me = saved; } catch (e) {}
+let checkins = [];
+let db = null;
+let loaded = false;
+let busy = false;
+
+function showMsg(text) { $("msg").textContent = text; $("msg").hidden = false; }
+function hideMsg() { $("msg").hidden = true; }
+
+function laneEl(person, data, today) {
+  const lane = document.createElement("article");
+  lane.className = "lane" + (person === me ? " is-me" : "");
+
+  const head = document.createElement("div");
+  head.className = "lane-head";
+  const name = document.createElement("div");
+  name.className = "name";
+  name.textContent = NAMES[person];
+  const count = document.createElement("div");
+  count.className = "count";
+  count.innerHTML = '<div class="num"></div><div class="unit"></div>';
+  count.querySelector(".num").textContent = data.streak;
+  count.querySelector(".unit").textContent = data.streak === 1 ? "day" : "days";
+  head.append(name, count);
+
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  const today1 = document.createElement("span");
+  today1.className = "chip" + (data.doneToday ? " good" : "");
+  today1.textContent = data.doneToday ? "Trained today" : "Not yet today";
+  const freeze = document.createElement("span");
+  freeze.className = "chip" + (data.freezesLeft ? " ice" : "");
+  freeze.textContent = data.freezesLeft ? "1 freeze left this week" : "Freeze used this week";
+  chips.append(today1, freeze);
+
+  const cal = document.createElement("div");
+  cal.className = "cal";
+  cal.setAttribute("role", "img");
+  cal.setAttribute("aria-label", `${NAMES[person]}'s last 5 weeks`);
+  for (const d of DOW) { const h = document.createElement("div"); h.className = "dow"; h.textContent = d; cal.append(h); }
+  for (const d of Streak.gridDates(today, 5)) {
+    const status = data.days.get(d) || (d > today ? "future" : "empty");
+    const cell = document.createElement("div");
+    cell.className = "cell " + status;
+    cell.title = STATUS_LABEL[status] ? `${d}: ${STATUS_LABEL[status]}` : d;
+    cal.append(cell);
+  }
+
+  lane.append(head, chips, cal);
+  return lane;
+}
+
+function coupleLine(r) {
+  if (!loaded) return "Loading check-ins…";
+  if (!r.start) return "Tap Done today to start your streak.";
+  const w = r.people.wenjing.doneToday, j = r.people.javen.doneToday;
+  if (w && j) return "You both trained today.";
+  if (w) return "Waiting on Javen today.";
+  if (j) return "Waiting on Wen Jing today.";
+  return "Neither of you has checked in today yet.";
+}
+
+function render() {
+  const today = Streak.localToday();
+  const r = Streak.computeAll(checkins, today);
+
+  $("couple-num").firstChild.nodeValue = r.couple.streak;
+  $("couple-sub").textContent = db === null && loaded ? "" : coupleLine(r);
+
+  $("picker").hidden = !!me;
+  $("who-line").hidden = !me;
+  if (me) $("who-name").textContent = NAMES[me];
+
+  const go = $("go");
+  go.hidden = !me || !db;
+  if (me) {
+    const done = r.people[me].doneToday;
+    go.textContent = done ? "Done ✓ · tap to undo" : "Done today ✓";
+    go.classList.toggle("is-done", done);
+    go.disabled = busy || !loaded;
+  }
+
+  $("lanes").replaceChildren(...Streak.PEOPLE.map((p) => laneEl(p, r.people[p], today)));
+}
+
+function choose(person) {
+  me = person;
+  try { if (person) localStorage.setItem("streak-me", person); else localStorage.removeItem("streak-me"); } catch (e) {}
+  render();
+}
+$("pick-wenjing").addEventListener("click", () => choose("wenjing"));
+$("pick-javen").addEventListener("click", () => choose("javen"));
+$("switch").addEventListener("click", () => choose(null));
+
+$("go").addEventListener("click", async () => {
+  if (!me || !db || busy || !loaded) return;
+  const today = Streak.localToday();
+  const done = Streak.computeAll(checkins, today).people[me].doneToday;
+  const ref = db.collection("checkins").doc(`${me}_${today}`);
+  busy = true; hideMsg(); render();
+  try {
+    if (done) await ref.delete();
+    else await ref.set({ person: me, date: today, at: new Date().toISOString() });
+  } catch (e) {
+    const code = e && e.code;
+    if (code === "invalid_argument") showMsg("This page won't let you save check-ins. Ask the person who shared it to give you Contributor access.");
+    else if (code === "quota_exceeded") showMsg("The check-in store is full, so this one wasn't saved.");
+    else showMsg("Couldn't save your check-in. Check your connection and tap again.");
+  }
+  busy = false; render();
+});
+
+// Keep "today" correct if the page stays open past midnight.
+setInterval(render, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
+
+render();
+
+(async () => {
+  db = window.claude && window.claude.use ? await window.claude.use("db") : null;
+  if (!db) {
+    loaded = true;
+    showMsg("Shared check-ins aren't available here. Open this page from its claude.ai link while signed in.");
+    render();
+    return;
+  }
+  db.collection("checkins").limit(1000).onSnapshot(
+    (snap) => { checkins = snap.docs.map((d) => d.data()); loaded = true; hideMsgIfLoadError(); render(); },
+    () => { showMsg("Lost the connection to your check-ins. Reload the page to reconnect."); },
+  );
+  render();
+})();
+
+function hideMsgIfLoadError() {
+  if ($("msg").textContent.startsWith("Lost the connection")) hideMsg();
+}
+</script>

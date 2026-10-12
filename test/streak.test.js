@@ -105,3 +105,45 @@ test("junk rows are ignored and duplicates count once", () => {
   assert.equal(r.people.wenjing.streak, 1);
   assert.equal(r.people.javen.streak, 0);
 });
+
+test("couple streak breaks when only one person misses", () => {
+  const rows = [
+    ...ci("wenjing", "2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09"),
+    ...ci("javen", "2026-10-05", "2026-10-06", "2026-10-09"),
+  ];
+  const r = S.computeAll(rows, "2026-10-10");
+  assert.equal(r.people.javen.days.get("2026-10-07"), "frozen");
+  assert.equal(r.people.javen.days.get("2026-10-08"), "missed");
+  assert.equal(r.couple.days.get("2026-10-08"), "missed");
+  assert.equal(r.couple.streak, 1);
+  assert.equal(r.people.wenjing.streak, 5);
+  assert.equal(r.people.javen.streak, 1);
+});
+
+test("a freeze keeps the couple streak alive without counting", () => {
+  const rows = [
+    ...ci("wenjing", "2026-10-05", "2026-10-06", "2026-10-07"),
+    ...ci("javen", "2026-10-05", "2026-10-06"),
+  ];
+  const r = S.computeAll(rows, "2026-10-08");
+  assert.equal(r.couple.days.get("2026-10-07"), "frozen");
+  assert.equal(r.couple.days.get("2026-10-08"), "pending");
+  assert.equal(r.couple.streak, 2);
+});
+
+test("couple today counts only when both are done", () => {
+  const one = S.computeAll(ci("wenjing", "2026-10-12"), "2026-10-12");
+  assert.equal(one.couple.days.get("2026-10-12"), "pending");
+  assert.equal(one.couple.streak, 0);
+  const both = S.computeAll([...ci("wenjing", "2026-10-12"), ...ci("javen", "2026-10-12")], "2026-10-12");
+  assert.equal(both.couple.days.get("2026-10-12"), "done");
+  assert.equal(both.couple.streak, 1);
+});
+
+test("gridDates covers whole weeks ending on today's Sunday", () => {
+  const g = S.gridDates("2026-10-13", 5);
+  assert.equal(g.length, 35);
+  assert.equal(g[0], "2026-09-14");
+  assert.equal(g[34], "2026-10-18");
+  assert.ok(g.includes("2026-10-13"));
+});

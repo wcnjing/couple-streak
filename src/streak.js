@@ -84,10 +84,25 @@
   }
 
   function coupleOf(people, today) {
-    return { streak: 0, days: new Map() }; // replaced in Task 2
+    const a = people.wenjing.days;
+    const b = people.javen.days;
+    const ok = (s) => s === "done" || s === "frozen";
+    const days = new Map();
+    for (const [d, sa] of a) {
+      const sb = b.get(d);
+      if (d === today) days.set(d, sa === "done" && sb === "done" ? "done" : "pending");
+      else if (!ok(sa) || !ok(sb)) days.set(d, "missed");
+      else days.set(d, sa === "done" && sb === "done" ? "done" : "frozen");
+    }
+    return { days, streak: streakFrom(days, today) };
   }
 
-  const api = { PEOPLE, addDays, weekStart, localToday, computeAll };
+  function gridDates(today, weeks) {
+    const first = addDays(weekStart(today), -7 * (weeks - 1));
+    return Array.from({ length: 7 * weeks }, (_, i) => addDays(first, i));
+  }
+
+  const api = { PEOPLE, addDays, weekStart, localToday, computeAll, gridDates };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Streak = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

@@ -159,3 +159,11 @@ test("impossible or ancient dates are ignored", () => {
   assert.equal(r.start, "2026-10-08");
   assert.equal(r.people.javen.streak, 2);
 });
+
+test("week progress counts trained and frozen days this week", () => {
+  const r = S.computeAll(ci("wenjing", "2026-10-05", "2026-10-06", "2026-10-08", "2026-10-09"), "2026-10-09");
+  assert.deepEqual(r.people.wenjing.week, { done: 4, frozen: 1 });
+  const fresh = S.computeAll(ci("wenjing", "2026-10-09", "2026-10-12"), "2026-10-13");
+  assert.deepEqual(fresh.people.wenjing.week, { done: 1, frozen: 0 });
+  assert.deepEqual(S.computeAll([], "2026-10-13").people.javen.week, { done: 0, frozen: 0 });
+});

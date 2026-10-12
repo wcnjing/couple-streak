@@ -66,6 +66,16 @@
     return 1;
   }
 
+  // Trained and frozen days from this week's Monday through today.
+  function weekProgress(days, today) {
+    const week = { done: 0, frozen: 0 };
+    for (let d = weekStart(today); d <= today; d = addDays(d, 1)) {
+      const s = days.get(d);
+      if (s === "done" || s === "frozen") week[s]++;
+    }
+    return week;
+  }
+
   function computeAll(checkins, today) {
     const clean = (checkins || []).filter((c) => isValid(c, today));
     let start = null;
@@ -80,6 +90,7 @@
         streak: streakFrom(days, today),
         doneToday: done.has(today),
         freezesLeft: freezesLeft(days, today),
+        week: weekProgress(days, today),
       };
     }
     return { start, people, couple: coupleOf(people, today) };

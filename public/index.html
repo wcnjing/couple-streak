@@ -1,5 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Streak">
 <title>Wen Jing &amp; Javen's Streak</title>
 <style>
+html { padding-top: env(safe-area-inset-top, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
 /* Layout: iOS inset-grouped page. Large title, a hero card with Activity-style nested rings (outer Wen Jing, inner Javen),
    one card per person with their streak and dot history, and a frosted bottom toolbar holding the check-in button. */
 :root {
@@ -57,6 +70,7 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1
 .picker { display: grid; gap: 12px; }
 .picker p { margin: 0; font-weight: 600; }
 .pick-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pick-row.one { grid-template-columns: 1fr; }
 .pick { height: 50px; border: 0; border-radius: 999px; background: var(--bg); color: var(--fg); font: 600 17px/1 var(--font); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform .1s ease-out; }
 
 .section-label { font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); margin: 4px 16px -8px; }
@@ -99,11 +113,12 @@ button:focus-visible { outline: 3px solid var(--c, var(--fg)); outline-offset: 3
   .toolbar { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 </style>
-
+</head>
+<body>
 <main class="wrap">
   <header class="top">
     <h1>Streak</h1>
-    <div class="who-line" id="who-line" hidden>You're <strong id="who-name"></strong> · <button class="link" id="switch" type="button">Switch</button></div>
+    <div class="who-line" id="who-line" hidden>You're <strong id="who-name"></strong> · <button class="link" id="signout" type="button">Sign out</button></div>
   </header>
 
   <section class="card hero" aria-label="This week">
@@ -134,11 +149,10 @@ button:focus-visible { outline: 3px solid var(--c, var(--fg)); outline-offset: 3
 
   <p class="msg" id="msg-top" hidden></p>
 
-  <section class="card picker" id="picker" hidden>
-    <p>Who's checking in on this phone?</p>
-    <div class="pick-row">
-      <button class="pick p-wenjing" id="pick-wenjing" type="button"><i class="swatch"></i>Wen Jing</button>
-      <button class="pick p-javen" id="pick-javen" type="button"><i class="swatch"></i>Javen</button>
+  <section class="card picker" id="signin" hidden>
+    <p id="signin-text">Sign in with the Google account you use for the streak.</p>
+    <div class="pick-row one">
+      <button class="pick" id="signin-btn" type="button">Continue with Google</button>
     </div>
   </section>
 
@@ -172,7 +186,12 @@ button:focus-visible { outline: 3px solid var(--c, var(--fg)); outline-offset: 3
 </div>
 
 <script src="streak.js"></script>
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { firebaseConfig, PEOPLE_EMAILS } from "./firebase-config.js";
+
 const NAMES = { wenjing: "Wen Jing", javen: "Javen" };
 const DOW = ["M", "T", "W", "T", "F", "S", "S"];
 const STATUS_LABEL = { done: "trained", frozen: "freeze used", missed: "missed", pending: "not yet" };
@@ -237,19 +256,25 @@ for (const p of Streak.PEOPLE) {
 }
 const coupleNum = new Spring((v) => { $("couple-num").textContent = Math.round(v); });
 
-let me = null;
-try { const saved = localStorage.getItem("streak-me"); if (NAMES[saved]) me = saved; } catch (e) {}
-let checkins = [];
+const configured = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
+let auth = null;
 let db = null;
+let user = null;      // signed-in Google account
+let me = null;        // "wenjing" | "javen" | null
+let checkins = [];
 let loaded = false;
-let busy = false;
+let authReady = false;
+let unsubscribe = null;
 
 function showMsg(text) { $("msg").textContent = text; $("msg").hidden = false; $("msg-top").textContent = text; $("msg-top").hidden = !$("toolbar").hidden; }
 function hideMsg() { $("msg").hidden = true; $("msg-top").hidden = true; }
 
 function coupleLine(r) {
+  if (!configured) return "Firebase isn't set up yet.";
+  if (!authReady) return "Loading…";
+  if (!user) return "Sign in to see your streaks.";
+  if (!me) return "";
   if (!loaded) return "Loading check-ins…";
-  if (!db) return "Check-ins aren't available here.";
   if (!r.start) return "Tap Done today to start your streak.";
   const w = r.people.wenjing.doneToday, j = r.people.javen.doneToday;
   if (w && j) return "You both trained today.";
@@ -291,69 +316,84 @@ function render() {
     renderCal(p, d.days, today);
   }
 
-  $("picker").hidden = !!me;
-  $("who-line").hidden = !me;
-  if (me) $("who-name").textContent = NAMES[me];
+  $("signin").hidden = !configured || !authReady || !!me;
+  $("signin-btn").hidden = !!user;
+  $("signin-text").textContent = user
+    ? `${user.email} isn't one of the two accounts on this streak. Sign out and use the right Google account.`
+    : "Sign in with the Google account you use for the streak.";
+  $("who-line").hidden = !user;
+  $("who-name").textContent = me ? NAMES[me] : (user ? user.email : "");
 
   const toolbar = $("toolbar");
-  toolbar.hidden = !me || !db;
+  toolbar.hidden = !me;
   toolbar.className = "toolbar" + (me ? " p-" + me : "");
   if (me) {
     const done = r.people[me].doneToday;
     $("go-label").textContent = done ? "Done · Tap to undo" : "Done today";
     $("go").classList.toggle("is-done", done);
-    $("go").disabled = busy || !loaded;
+    $("go").disabled = !loaded;
   }
 }
 
-function choose(person) {
-  me = person;
-  try { if (person) localStorage.setItem("streak-me", person); else localStorage.removeItem("streak-me"); } catch (e) {}
-  render();
+function errorText(e) {
+  const code = (e && e.code) || "";
+  if (code === "permission-denied") return "This account isn't allowed to save check-ins. Check the two emails in firestore.rules.";
+  if (code === "auth/unauthorized-domain") return "This website isn't allowed to sign in yet. Add it in Firebase → Authentication → Settings → Authorized domains.";
+  if (code === "auth/popup-blocked") return "Your browser blocked the sign-in window. Allow pop-ups for this site and try again.";
+  if (code === "unavailable" || code === "auth/network-request-failed") return "Couldn't reach the server. Check your connection and try again.";
+  return "Something went wrong. Try again.";
 }
-$("pick-wenjing").addEventListener("click", () => choose("wenjing"));
-$("pick-javen").addEventListener("click", () => choose("javen"));
-$("switch").addEventListener("click", () => choose(null));
+
+$("signin-btn").addEventListener("click", async () => {
+  hideMsg();
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch (e) { if (e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") showMsg(errorText(e)); }
+});
+$("signout").addEventListener("click", () => { hideMsg(); signOut(auth); });
 // Lets iOS Safari show :active press feedback the instant a finger lands.
 document.addEventListener("touchstart", () => {}, { passive: true });
 
-$("go").addEventListener("click", async () => {
-  if (!me || !db || busy || !loaded) return;
+$("go").addEventListener("click", () => {
+  if (!me || !loaded) return;
   const today = Streak.localToday();
   const done = Streak.computeAll(checkins, today).people[me].doneToday;
-  const ref = db.collection("checkins").doc(`${me}_${today}`);
-  busy = true; hideMsg(); render();
+  const ref = doc(db, "checkins", `${me}_${today}`);
+  hideMsg();
   try { if (!done && navigator.vibrate) navigator.vibrate(12); } catch (e) {}
-  try {
-    if (done) await ref.delete();
-    else await ref.set({ person: me, date: today, at: new Date().toISOString() });
-  } catch (e) {
-    const code = e && e.code;
-    if (code === "invalid_argument") showMsg("This page won't let you save check-ins. Ask the person who shared it to give you Contributor access.");
-    else if (code === "quota_exceeded") showMsg("The check-in store is full, so this one wasn't saved.");
-    else showMsg("Couldn't save your check-in. Check your connection and tap again.");
-  }
-  busy = false; render();
+  // Firestore shows the change locally straight away; the server confirms in the background.
+  const write = done ? deleteDoc(ref) : setDoc(ref, { person: me, date: today, at: new Date().toISOString() });
+  write.catch((e) => showMsg(errorText(e)));
 });
 
 // Keep "today" correct if the page stays open past midnight.
 setInterval(render, 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
 
-render();
-
-(async () => {
-  db = window.claude && window.claude.use ? await window.claude.use("db") : null;
-  if (!db) {
-    loaded = true;
-    render();
-    showMsg("Shared check-ins aren't available here. Open this page from its claude.ai link while signed in.");
-    return;
-  }
-  db.collection("checkins").orderBy("date", "desc").limit(1000).onSnapshot(
-    (snap) => { checkins = snap.docs.map((d) => d.data()); loaded = true; render(); },
-    () => { showMsg("Lost the connection to your check-ins. Reload the page to reconnect."); },
-  );
+if (!configured) {
   render();
-})();
+  showMsg("Add your Firebase settings to firebase-config.js to start.");
+} else {
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  onAuthStateChanged(auth, (u) => {
+    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    authReady = true;
+    user = u;
+    me = u ? Streak.personFor(PEOPLE_EMAILS, u.email) : null;
+    checkins = [];
+    loaded = false;
+    if (me) {
+      const q = query(collection(db, "checkins"), orderBy("date", "desc"), limit(1000));
+      unsubscribe = onSnapshot(q,
+        (snap) => { checkins = snap.docs.map((d) => d.data()); loaded = true; render(); },
+        (e) => { showMsg(e.code === "permission-denied" ? errorText(e) : "Lost the connection to your check-ins. Reload the page to reconnect."); },
+      );
+    }
+    render();
+  });
+  render();
+}
 </script>
+</body>
+</html>

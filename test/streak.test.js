@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const S = require("../src/streak.js");
+const S = require("../public/streak.js");
 
 // 2026-10-05 is a Monday; 2026-10-12 is the next Monday.
 const ci = (person, ...dates) => dates.map((date) => ({ person, date }));
@@ -166,4 +166,13 @@ test("week progress counts trained and frozen days this week", () => {
   const fresh = S.computeAll(ci("wenjing", "2026-10-09", "2026-10-12"), "2026-10-13");
   assert.deepEqual(fresh.people.wenjing.week, { done: 1, frozen: 0 });
   assert.deepEqual(S.computeAll([], "2026-10-13").people.javen.week, { done: 0, frozen: 0 });
+});
+
+test("personFor maps a signed-in email to a person, ignoring case", () => {
+  const emails = { wenjing: "WJ@Example.com", javen: "javen@example.com" };
+  assert.equal(S.personFor(emails, "wj@example.com"), "wenjing");
+  assert.equal(S.personFor(emails, "JAVEN@example.com"), "javen");
+  assert.equal(S.personFor(emails, "stranger@example.com"), null);
+  assert.equal(S.personFor(emails, null), null);
+  assert.equal(S.personFor({ wenjing: "", javen: "" }, ""), null);
 });

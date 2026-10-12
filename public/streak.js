@@ -115,7 +115,17 @@
     return Array.from({ length: 7 * weeks }, (_, i) => addDays(first, i));
   }
 
-  const api = { PEOPLE, addDays, weekStart, localToday, computeAll, gridDates };
+  // Which person a signed-in Google account belongs to, or null.
+  function personFor(emails, email) {
+    if (!email) return null;
+    const e = String(email).trim().toLowerCase();
+    for (const p of PEOPLE) {
+      if (emails[p] && String(emails[p]).trim().toLowerCase() === e) return p;
+    }
+    return null;
+  }
+
+  const api = { PEOPLE, addDays, weekStart, localToday, computeAll, gridDates, personFor };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Streak = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

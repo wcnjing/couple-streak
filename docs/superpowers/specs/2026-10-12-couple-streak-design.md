@@ -55,7 +55,7 @@ The page doesn't store any streak numbers. It calculates everything from the che
   - freezes left this week
 - **Main button:** "Done today ✓" for the current viewer. Once tapped, it changes to "Done ✓ (undo)", and undo deletes today's check-in.
 - **History:** a grid of the last 5 weeks with one row per person, coloured by done, frozen, missed or pending.
-- **Updates:** data reloads on page load, after a check-in, and when the tab regains focus.
+- **Updates:** data stays live through the database's `onSnapshot` subscription, so one person's check-in shows up on the other's screen without a reload. "Today" is recalculated every minute and when the tab regains focus, so the page rolls over correctly at midnight.
 - **Display:** supports both light and dark mode.
 
 ## Structure
@@ -65,6 +65,7 @@ The streak logic is a set of pure functions (e.g. `computePerson(dates, today)` 
 ## Error handling
 
 - If a database read or write fails, show a small inline message and keep the button usable to retry.
+- If a write is refused because the viewer isn't allowed to write, tell them to ask the owner to share the page with them as a Contributor. Javen needs Contributor access to check in.
 - If `localStorage` isn't available, ask "Who are you?" on each visit.
 
 ## Testing

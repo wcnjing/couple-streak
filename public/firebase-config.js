@@ -9,6 +9,6 @@ export const firebaseConfig = {
 
 // The Google account each person signs in with. Keep these in sync with firestore.rules.
 export const PEOPLE_EMAILS = {
-  wenjing: "",
-  javen: "",
+  wenjing: "wenjinx2005@gmail.com",
+  javen: "javen.heng1@gmail.com",
 };

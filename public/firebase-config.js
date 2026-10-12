@@ -6,8 +6,8 @@ export const firebaseConfig = {
   projectId: "streak-5241d",
   storageBucket: "streak-5241d.firebasestorage.app",
   messagingSenderId: "1050770325952",
-  appId: "1:1050770325952:web:056a6fbf0f6021e5ea0825",
-  measurementId: "G-HYCJ8STRPE"
+  appId: "1:1050770325952:web:6b3e0022618791b1ea0825",
+  measurementId: "G-00ZL5YCFEK"
 };
 
 

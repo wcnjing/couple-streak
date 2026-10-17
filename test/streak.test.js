@@ -49,7 +49,7 @@ test("checking in today adds one", () => {
 test("a mid-week miss is frozen and keeps the streak", () => {
   const r = S.computeAll(ci("wenjing", "2026-10-05", "2026-10-06", "2026-10-08", "2026-10-09"), "2026-10-10");
   assert.equal(r.people.wenjing.days.get("2026-10-07"), "frozen");
-  assert.equal(r.people.wenjing.streak, 4);
+  assert.equal(r.people.wenjing.streak, 5);
   assert.equal(r.people.wenjing.freezesLeft, 0);
 });
 
@@ -68,7 +68,7 @@ test("freeze resets on Monday", () => {
   );
   assert.equal(r.people.wenjing.days.get("2026-10-10"), "frozen");
   assert.equal(r.people.wenjing.days.get("2026-10-12"), "frozen");
-  assert.equal(r.people.wenjing.streak, 7);
+  assert.equal(r.people.wenjing.streak, 9);
   assert.equal(r.people.wenjing.freezesLeft, 0);
 });
 
@@ -128,7 +128,7 @@ test("a freeze keeps the couple streak alive without counting", () => {
   const r = S.computeAll(rows, "2026-10-08");
   assert.equal(r.couple.days.get("2026-10-07"), "frozen");
   assert.equal(r.couple.days.get("2026-10-08"), "pending");
-  assert.equal(r.couple.streak, 2);
+  assert.equal(r.couple.streak, 3);
 });
 
 test("couple today counts only when both are done", () => {
@@ -175,4 +175,12 @@ test("personFor maps a signed-in email to a person, ignoring case", () => {
   assert.equal(S.personFor(emails, "stranger@example.com"), null);
   assert.equal(S.personFor(emails, null), null);
   assert.equal(S.personFor({ wenjing: "", javen: "" }, ""), null);
+});
+
+test("a streak made only of freezes is zero", () => {
+  // Javen never trained; his first missed day is frozen but isn't a streak on its own.
+  const r = S.computeAll(ci("wenjing", "2026-10-12", "2026-10-13"), "2026-10-14");
+  assert.equal(r.people.javen.days.get("2026-10-12"), "frozen");
+  assert.equal(r.people.javen.streak, 0);
+  assert.equal(r.people.wenjing.streak, 2);
 });

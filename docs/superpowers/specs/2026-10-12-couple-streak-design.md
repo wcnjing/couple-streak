@@ -31,8 +31,8 @@ Rules:
 
 1. Freezes are assigned in date order. In any Mon–Sun week, the earliest day without a check-in becomes frozen, and later missed days that week are missed.
 2. **Today** is never missed or frozen. It counts as done if checked in, otherwise it shows as *pending* and leaves the streak unchanged.
-3. **Personal streak** is the number of consecutive done or frozen days, counted back from yesterday (or from today if today is done), stopping at the first missed day. Frozen days keep the streak alive but don't add to the count. The streak shows workouts, not covered days.
-4. **Couple streak** works the same way, except a day only qualifies if *both* people are done or frozen. It counts days where both were done, and frozen days keep it alive without adding to the count.
+3. **Personal streak** is the number of consecutive done or frozen days, counted back from yesterday (or from today if today is done), stopping at the first missed day. Frozen days add one, the same as done days (changed 2026-10-18 at the user's request). A run made only of frozen days, with no done day in it, counts as 0.
+4. **Couple streak** works the same way, except a day only qualifies if *both* people are done or frozen. Every qualifying day adds one, and a run needs at least one day where both were done.
 5. **The challenge start** is the earliest check-in by either person. Days before it are ignored, so there are no misses before you started.
 6. **Freezes left this week** is 1 if the person has no frozen day in the current Mon–Sun week, otherwise 0.
 

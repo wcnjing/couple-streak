@@ -48,15 +48,19 @@
     return days;
   }
 
-  // Count done days walking back from today; frozen days are skipped, missed stops.
+  // Count days walking back from today: trained and frozen days both add one, a missed day stops.
+  // A run with no trained day in it (only freezes) isn't a streak.
   function streakFrom(days, today) {
-    let count = days.get(today) === "done" ? 1 : 0;
+    let count = 0;
+    let trained = 0;
+    if (days.get(today) === "done") { count++; trained++; }
     for (let d = addDays(today, -1); days.has(d); d = addDays(d, -1)) {
       const s = days.get(d);
       if (s === "missed") break;
-      if (s === "done") count++;
+      count++;
+      if (s === "done") trained++;
     }
-    return count;
+    return trained ? count : 0;
   }
 
   function freezesLeft(days, today) {

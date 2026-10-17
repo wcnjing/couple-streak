@@ -184,3 +184,14 @@ test("a streak made only of freezes is zero", () => {
   assert.equal(r.people.javen.streak, 0);
   assert.equal(r.people.wenjing.streak, 2);
 });
+
+test("together streak keeps counting across weeks", () => {
+  // Three full weeks (Mon 28 Sep to Sun 18 Oct) with one frozen day each week for Javen.
+  const dates = [];
+  for (let d = "2026-09-28"; d <= "2026-10-18"; d = S.addDays(d, 1)) dates.push(d);
+  const javenSkips = new Set(["2026-09-30", "2026-10-07", "2026-10-14"]);
+  const rows = [...ci("wenjing", ...dates), ...ci("javen", ...dates.filter((d) => !javenSkips.has(d)))];
+  const r = S.computeAll(rows, "2026-10-18");
+  assert.equal(r.couple.streak, 21);
+  assert.equal(r.people.javen.streak, 21);
+});

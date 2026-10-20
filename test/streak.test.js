@@ -28,7 +28,7 @@ test("empty history", () => {
   assert.equal(r.start, null);
   assert.equal(r.people.wenjing.streak, 0);
   assert.equal(r.people.wenjing.doneToday, false);
-  assert.equal(r.people.wenjing.freezesLeft, 1);
+  assert.equal(r.people.wenjing.freezesLeft, 2);
   assert.equal(r.people.wenjing.days.get("2026-10-12"), "pending");
   assert.equal(r.couple.streak, 0);
 });
@@ -50,11 +50,20 @@ test("a mid-week miss is frozen and keeps the streak", () => {
   const r = S.computeAll(ci("wenjing", "2026-10-05", "2026-10-06", "2026-10-08", "2026-10-09"), "2026-10-10");
   assert.equal(r.people.wenjing.days.get("2026-10-07"), "frozen");
   assert.equal(r.people.wenjing.streak, 5);
+  assert.equal(r.people.wenjing.freezesLeft, 1);
+});
+
+test("a second miss in the same week is also frozen", () => {
+  const r = S.computeAll(ci("wenjing", "2026-10-05", "2026-10-06", "2026-10-08", "2026-10-10"), "2026-10-10");
+  assert.equal(r.people.wenjing.days.get("2026-10-07"), "frozen");
+  assert.equal(r.people.wenjing.days.get("2026-10-09"), "frozen");
+  assert.equal(r.people.wenjing.streak, 6);
   assert.equal(r.people.wenjing.freezesLeft, 0);
 });
 
-test("a second miss in the same week breaks the streak", () => {
-  const r = S.computeAll(ci("wenjing", "2026-10-05", "2026-10-06", "2026-10-08", "2026-10-10"), "2026-10-10");
+test("a third miss in the same week breaks the streak", () => {
+  const r = S.computeAll(ci("wenjing", "2026-10-05", "2026-10-08", "2026-10-10"), "2026-10-10");
+  assert.equal(r.people.wenjing.days.get("2026-10-06"), "frozen");
   assert.equal(r.people.wenjing.days.get("2026-10-07"), "frozen");
   assert.equal(r.people.wenjing.days.get("2026-10-09"), "missed");
   assert.equal(r.people.wenjing.streak, 1);
@@ -69,15 +78,15 @@ test("freeze resets on Monday", () => {
   assert.equal(r.people.wenjing.days.get("2026-10-10"), "frozen");
   assert.equal(r.people.wenjing.days.get("2026-10-12"), "frozen");
   assert.equal(r.people.wenjing.streak, 9);
-  assert.equal(r.people.wenjing.freezesLeft, 0);
+  assert.equal(r.people.wenjing.freezesLeft, 1);
 });
 
-test("missing Sat and Sun breaks on Sunday", () => {
+test("missing Sat and Sun uses both freezes", () => {
   const r = S.computeAll(ci("wenjing", "2026-10-09", "2026-10-12"), "2026-10-12");
   assert.equal(r.people.wenjing.days.get("2026-10-10"), "frozen");
-  assert.equal(r.people.wenjing.days.get("2026-10-11"), "missed");
-  assert.equal(r.people.wenjing.streak, 1);
-  assert.equal(r.people.wenjing.freezesLeft, 1);
+  assert.equal(r.people.wenjing.days.get("2026-10-11"), "frozen");
+  assert.equal(r.people.wenjing.streak, 4);
+  assert.equal(r.people.wenjing.freezesLeft, 2);
 });
 
 test("challenge starts at the first check-in by either person", () => {
@@ -85,7 +94,7 @@ test("challenge starts at the first check-in by either person", () => {
   assert.equal(r.start, "2026-10-08");
   assert.equal(r.people.javen.days.has("2026-10-07"), false);
   assert.equal(r.people.wenjing.days.get("2026-10-08"), "frozen");
-  assert.equal(r.people.wenjing.days.get("2026-10-09"), "missed");
+  assert.equal(r.people.wenjing.days.get("2026-10-09"), "frozen");
   assert.equal(r.people.wenjing.streak, 0);
   assert.equal(r.people.javen.streak, 2);
 });
@@ -109,9 +118,10 @@ test("junk rows are ignored and duplicates count once", () => {
 test("couple streak breaks when only one person misses", () => {
   const rows = [
     ...ci("wenjing", "2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09"),
-    ...ci("javen", "2026-10-05", "2026-10-06", "2026-10-09"),
+    ...ci("javen", "2026-10-05", "2026-10-09"),
   ];
   const r = S.computeAll(rows, "2026-10-10");
+  assert.equal(r.people.javen.days.get("2026-10-06"), "frozen");
   assert.equal(r.people.javen.days.get("2026-10-07"), "frozen");
   assert.equal(r.people.javen.days.get("2026-10-08"), "missed");
   assert.equal(r.couple.days.get("2026-10-08"), "missed");
@@ -120,7 +130,7 @@ test("couple streak breaks when only one person misses", () => {
   assert.equal(r.people.javen.streak, 1);
 });
 
-test("a freeze keeps the couple streak alive without counting", () => {
+test("a freeze keeps the couple streak alive and counts", () => {
   const rows = [
     ...ci("wenjing", "2026-10-05", "2026-10-06", "2026-10-07"),
     ...ci("javen", "2026-10-05", "2026-10-06"),

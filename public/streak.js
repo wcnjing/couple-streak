@@ -3,6 +3,7 @@
   const PEOPLE = ["wenjing", "javen"];
   const DAY_MS = 86400000;
   const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const FREEZES_PER_WEEK = 2;
   const EARLIEST = "2026-01-01"; // nothing real predates the app; keeps a junk row from looping years
 
   function toNum(date) {
@@ -35,12 +36,13 @@
   function personDays(doneDates, start, today) {
     const days = new Map();
     if (start) {
-      const usedWeeks = new Set();
+      const used = new Map(); // week start -> freezes used that week
       for (let d = start; d < today; d = addDays(d, 1)) {
         if (doneDates.has(d)) { days.set(d, "done"); continue; }
         const w = weekStart(d);
-        if (usedWeeks.has(w)) { days.set(d, "missed"); continue; }
-        usedWeeks.add(w);
+        const n = used.get(w) || 0;
+        if (n >= FREEZES_PER_WEEK) { days.set(d, "missed"); continue; }
+        used.set(w, n + 1);
         days.set(d, "frozen");
       }
     }
@@ -64,10 +66,11 @@
   }
 
   function freezesLeft(days, today) {
+    let left = FREEZES_PER_WEEK;
     for (let d = weekStart(today); d < today; d = addDays(d, 1)) {
-      if (days.get(d) === "frozen") return 0;
+      if (days.get(d) === "frozen") left--;
     }
-    return 1;
+    return left;
   }
 
   // Trained and frozen days from this week's Monday through today.
@@ -129,7 +132,7 @@
     return null;
   }
 
-  const api = { PEOPLE, addDays, weekStart, localToday, computeAll, gridDates, personFor };
+  const api = { PEOPLE, FREEZES_PER_WEEK, addDays, weekStart, localToday, computeAll, gridDates, personFor };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Streak = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

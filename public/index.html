@@ -179,7 +179,7 @@ button:focus-visible { outline: 3px solid var(--c, var(--fg)); outline-offset: 3
     <span><i class="dot frozen"></i>Freeze</span>
     <span><i class="dot missed"></i>Missed</span>
   </p>
-  <p class="rules">Rings fill with this week's training and freeze days and reset every Monday. Each of you gets one freeze a week, which covers your first missed day automatically. A frozen day counts toward your streak just like a training day. The together streak grows on days you're both covered, by training or a freeze.</p>
+  <p class="rules">Rings fill with this week's training and freeze days and reset every Monday. Each of you gets two freezes a week, which cover your first two missed days automatically. A frozen day counts toward your streak just like a training day. The together streak grows on days you're both covered, by training or a freeze.</p>
 </main>
 
 <div class="toolbar" id="toolbar" hidden>
@@ -316,7 +316,7 @@ function render() {
     $("key-" + p).textContent = `${d.week.done + d.week.frozen}/7`;
     nums[p].to(d.streak);
     $("unit-" + p).textContent = d.streak === 1 ? "day" : "days";
-    $("status-" + p).textContent = `${d.doneToday ? "Trained today" : "Not yet today"} · ${d.freezesLeft ? "1 freeze left" : "Freeze used"}`;
+    $("status-" + p).textContent = `${d.doneToday ? "Trained today" : "Not yet today"} · ${d.freezesLeft === 0 ? "No freezes left" : d.freezesLeft === 1 ? "1 freeze left" : d.freezesLeft + " freezes left"}`;
     renderCal(p, d.days, today);
   }
 

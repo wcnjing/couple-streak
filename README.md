@@ -1,6 +1,6 @@
 # Wen Jing & Javen's Streak
 
-A one-page fitness streak tracker for two people. It shows a personal streak for each of you, a together streak and one freeze per week. It's a static site on Vercel, with check-ins stored in Firebase (Firestore) and sign-in through Google.
+A one-page fitness streak tracker for two people. It shows a personal streak for each of you, a together streak and two freezes per week. It's a static site on Vercel, with check-ins stored in Firebase (Firestore) and sign-in through Google.
 
 ```
 public/               what Vercel serves
